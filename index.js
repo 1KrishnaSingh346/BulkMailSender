@@ -75,21 +75,18 @@ console.log('🔒 Middleware configured');
 // Redis connection with enhanced configuration
 console.log('🔌 Connecting to Redis...');
 const redisConfig = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  host: process.env.REDIS_HOST, // 'redis-17126.c15.us-east-1-4.ec2.redns.redis-cloud.com'
+  port: parseInt(process.env.REDIS_PORT), // 17126
+  username: process.env.REDIS_USERNAME || 'default', // Redis 6+ requires username
   password: process.env.REDIS_PASSWORD,
-  username: process.env.REDIS_USERNAME || 'default',
-  
-  // BullMQ required settings:
-  maxRetriesPerRequest: null, // Must be null for BullMQ
-  enableOfflineQueue: false, // Recommended for production
-  
-  // TLS configuration for Redis Cloud:
-  tls: process.env.REDIS_HOST ? {
-    rejectUnauthorized: false,
-    servername: process.env.REDIS_HOST,
-    minVersion: 'TLSv1.2' // Force TLS 1.2
-  } : undefined
+  tls: {
+    // Required for Redis Cloud TLS
+    rejectUnauthorized: false, // Validate certificate (true for production)
+    servername: process.env.REDIS_HOST // Must match certificate
+  },
+  maxRetriesPerRequest: null, // Must be null for BullMQ compatibility
+  enableOfflineQueue: false, // Better for production
+  connectTimeout: 10000 // 10 seconds
 };
 
 const connection = new IORedis(redisConfig);
@@ -113,8 +110,7 @@ connection.on('error', (err) => {
 
 // Email queue setup with enhanced configuration
 console.log('📨 Setting up email queue...');
-// Email queue setup
-const emailQueue = new Queue('emailQueue', { 
+const emailQueue = new Queue('emailQueue', {
   connection,
   defaultJobOptions: {
     attempts: 3,
@@ -677,10 +673,6 @@ const worker = new Worker('emailQueue', async (job) => {
   limiter: {
     max: 10,
     duration: 1000
-  },
-  settings: {
-    lockDuration: 30000,
-    stalledInterval: 30000
   }
 });
 
@@ -738,23 +730,6 @@ const shutdown = async (signal) => {
     process.exit(1);
   }
 };
-
-connection.on('error', (err) => {
-  console.error('❌ Redis connection error:', err.message);
-  
-  // Special handling for TLS errors
-  if (err.code === 'ERR_SSL_WRONG_VERSION_NUMBER') {
-    console.error('⚠️ TLS version mismatch detected. Trying fallback options...');
-    
-    // Try forcing TLS 1.2 globally
-    process.env.NODE_OPTIONS = '--tls-min-v1.2';
-    
-    // Or try non-TLS connection if possible
-    if (process.env.REDIS_HOST && process.env.REDIS_HOST.includes('redislabs')) {
-      console.warn('Consider using non-TLS port if available');
-    }
-  }
-});
 
 // Handle signals
 process.on('SIGINT', () => shutdown('SIGINT'));
