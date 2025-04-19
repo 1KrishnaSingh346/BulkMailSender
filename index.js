@@ -75,21 +75,30 @@ console.log('🔒 Middleware configured');
 // Redis connection with enhanced configuration
 console.log('🔌 Connecting to Redis...');
 const redisConfig = {
-  host: process.env.REDIS_HOST, // 'redis-17126.c15.us-east-1-4.ec2.redns.redis-cloud.com'
-  port: parseInt(process.env.REDIS_PORT), // 17126
-  username: process.env.REDIS_USERNAME || 'default', // Redis 6+ requires username
-  password: process.env.REDIS_PASSWORD,
-  tls: {
-    // Required for Redis Cloud TLS
-    rejectUnauthorized: false, // Validate certificate (true for production)
-    servername: process.env.REDIS_HOST // Must match certificate
+  socket: {
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT),
+    tls: true, // Explicitly enable TLS
+    servername: process.env.REDIS_HOST, // Critical for Redis Cloud
+    rejectUnauthorized: false // Required for Render's network
   },
-  maxRetriesPerRequest: null, // Must be null for BullMQ compatibility
-  enableOfflineQueue: false, // Better for production
-  connectTimeout: 10000 // 10 seconds
+  username: process.env.REDIS_USERNAME || 'default',
+  password: process.env.REDIS_PASSWORD,
+  maxRetriesPerRequest: null,
+  enableOfflineQueue: false,
+  connectTimeout: 10000
 };
 
+// For ioredis v5+ (recommended)
 const connection = new IORedis(redisConfig);
+
+// // Alternative for older versions:
+// const connection = new IORedis({
+//   ...redisConfig,
+//   tls: redisConfig.socket.tls,
+//   host: redisConfig.socket.host,
+//   port: redisConfig.socket.port
+// });
 
 connection.on('connect', () => {
   console.log('🟢 Redis connection established');
