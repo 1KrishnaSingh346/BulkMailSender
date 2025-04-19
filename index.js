@@ -81,7 +81,7 @@ const redisConfig = {
   password: process.env.REDIS_PASSWORD,
   tls: {
     // Required for Redis Cloud TLS
-    rejectUnauthorized: true, // Validate certificate (true for production)
+    rejectUnauthorized: false, // Validate certificate (true for production)
     servername: process.env.REDIS_HOST // Must match certificate
   },
   maxRetriesPerRequest: null, // Must be null for BullMQ compatibility
