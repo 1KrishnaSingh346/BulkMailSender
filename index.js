@@ -75,15 +75,20 @@ console.log('🔒 Middleware configured');
 // Redis connection with enhanced configuration
 console.log('🔌 Connecting to Redis...');
 const redisConfig = {
-  host: process.env.REDIS_HOST || 'localhost', // Fallback for local development
-  port: parseInt(process.env.REDIS_PORT || '6379'), // Fallback port
-  password: process.env.REDIS_PASSWORD, // No fallback for production security
-  username: process.env.REDIS_USERNAME || 'default', // Optional username
-  // For Redis Cloud TLS connections:
-  tls: process.env.REDIS_HOST ? { 
-    rejectUnauthorized: false,
-    servername: process.env.REDIS_HOST
-  } : undefined
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379'),
+  password: process.env.REDIS_PASSWORD,
+  username: process.env.REDIS_USERNAME || 'default',
+  // BullMQ required settings:
+  maxRetriesPerRequest: null, // Must be null for BullMQ
+  enableOfflineQueue: false, // Recommended for production
+  // TLS configuration if using Redis Cloud:
+  ...(process.env.REDIS_HOST ? {
+    tls: {
+      rejectUnauthorized: false,
+      servername: process.env.REDIS_HOST
+    }
+  } : {})
 };
 
 const connection = new IORedis(redisConfig);
